@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import ttk, messagebox, Listbox, Toplevel
+from tkinter import ttk, messagebox, Listbox, Toplevel, BooleanVar
 import data_handler as dh
 
 active_dropdowns = []
@@ -560,9 +560,18 @@ class SISApp(ctk.CTk):
         right_frame = ctk.CTkFrame(self.student_tab)
         right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        self.entry_search = ctk.CTkEntry(right_frame, placeholder_text="Search students...", width=300)
-        self.entry_search.pack(pady=10)
+        sortFilter_frame = ctk.CTkFrame(right_frame)
+        sortFilter_frame.pack(pady=10, fill="x")
+
+        search_filter_frame = ctk.CTkFrame(sortFilter_frame, fg_color="transparent")
+        search_filter_frame.pack()
+
+        self.entry_search = ctk.CTkEntry(search_filter_frame, placeholder_text="Search students...", width=450)
+        self.entry_search.pack(side="left", padx=10)
         self.entry_search.bind("<KeyRelease>", self.search_student)
+        
+        filter_button = ctk.CTkButton(search_filter_frame, text="Filter", command=self.open_filter_window, width=50)
+        filter_button.pack(side="right", padx=10)
 
         tree_container = ctk.CTkFrame(right_frame)
         tree_container.pack(fill="both", expand=True)
@@ -693,6 +702,168 @@ class SISApp(ctk.CTk):
         for s in dh.student_db.load_data():
             if any(query in str(v).lower() for v in s.values()):
                 self.student_tree.insert("", "end", values=list(s.values()))
+
+    def open_filter_window(self):
+        filter_window = Toplevel(self.master)
+        filter_window.title("Filter Students")
+        filter_window.geometry("380x350")
+        filter_window.configure(bg='#2b2b2b')
+        filter_window.resizable(False, False)
+        
+        if not hasattr(self, 'filter_vars'):
+            self.filter_vars = {}
+        
+        main_frame = ctk.CTkFrame(filter_window)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        left_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        left_frame.pack(side="left", fill="both", padx=10, pady=10)
+
+        ltop_frame = ctk.CTkFrame(left_frame)
+        ltop_frame.pack(fill="x", expand=True)
+
+        # Gender filter
+        gender_frame = ctk.CTkFrame(ltop_frame, fg_color="transparent")
+        gender_frame.pack(side="left", fill="both")
+        ctk.CTkLabel(gender_frame, text="Gender:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        
+        if 'male' not in self.filter_vars:
+            self.filter_vars['male'] = BooleanVar(value=False)
+        if 'female' not in self.filter_vars:
+            self.filter_vars['female'] = BooleanVar(value=False)
+            
+        ctk.CTkCheckBox(gender_frame, text="Male", variable=self.filter_vars['male']).pack(pady=3)
+        ctk.CTkCheckBox(gender_frame, text="Female", variable=self.filter_vars['female']).pack(pady=3)
+        
+        lbot_frame = ctk.CTkFrame(left_frame)
+        lbot_frame.pack(fill="x", expand=True)
+
+        # Year level filter
+        year_frame = ctk.CTkFrame(lbot_frame, fg_color="transparent")
+        year_frame.pack(fill="both")
+        ctk.CTkLabel(year_frame, text="Year Level:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        
+        year1_frame = ctk.CTkFrame(year_frame)
+        year1_frame.pack(side="left", fill="both", expand=True)
+
+        for year in ["1st", "2nd"]:
+            var_name = f'year_{year}'
+            if var_name not in self.filter_vars:
+                self.filter_vars[var_name] = BooleanVar(value=False)
+            ctk.CTkCheckBox(year1_frame, text=year, variable=self.filter_vars[var_name]).pack(pady=1)
+
+        year2_frame = ctk.CTkFrame(year_frame)
+        year2_frame.pack(side="right", fill="both", expand=True)
+        for year in ["3rd", "4th"]:
+            var_name = f'year_{year}'
+            if var_name not in self.filter_vars:
+                self.filter_vars[var_name] = BooleanVar(value=False)
+            ctk.CTkCheckBox(year2_frame, text=year, variable=self.filter_vars[var_name]).pack(pady=1)
+        
+        right_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+        
+        # College filter
+        college_frame = ctk.CTkFrame(right_frame)
+        college_frame.pack(fill="both")
+        ctk.CTkLabel(college_frame, text="College:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        
+        colleges = dh.college_db.load_data()
+        for i, college in enumerate(colleges):
+            college_code = college['code']
+            var_name = f'college_{college_code}'
+            if var_name not in self.filter_vars:
+                self.filter_vars[var_name] = BooleanVar(value=False)
+            ctk.CTkCheckBox(college_frame, text=college_code, variable=self.filter_vars[var_name]).pack(pady=3)
+        
+        # Buttons frame
+        button_frame = ctk.CTkFrame(filter_window)
+        button_frame.pack(fill="x", padx=15, pady=(0, 15))
+        
+        ctk.CTkButton(button_frame, text="Apply Filters", command=lambda: self.apply_filters(filter_window), width=100).pack(side="left", padx=8)
+        ctk.CTkButton(button_frame, text="Clear All", command=self.clear_all_filters, width=100).pack(side="left", padx=8)
+        ctk.CTkButton(button_frame, text="Cancel", command=filter_window.destroy, width=100).pack(side="left", padx=8)
+
+    def apply_filters(self, filter_window=None):
+        # Clear current table
+        for item in self.student_tree.get_children():
+            self.student_tree.delete(item)
+        
+        # Get all students
+        students = dh.student_db.load_data()
+        
+        # Apply filters
+        filtered_students = []
+        
+        # Pre-load programs for college lookup
+        programs = dh.program_db.load_data()
+        program_college_map = {prog['code']: prog['college_code'] for prog in programs}
+        
+        for student in students:
+            # Gender filter
+            gender_match = True
+            if self.filter_vars['male'].get() or self.filter_vars['female'].get():
+                # Only check if at least one gender filter is active
+                gender_match = False
+                if self.filter_vars['male'].get() and student['gender'].lower() == 'male':
+                    gender_match = True
+                if self.filter_vars['female'].get() and student['gender'].lower() == 'female':
+                    gender_match = True
+            
+            # Year level filter
+            year_match = True
+            active_year_filters = [year for year in ['1st', '2nd', '3rd', '4th'] 
+                                 if self.filter_vars[f'year_{year}'].get()]
+            if active_year_filters:
+                # Only check if at least one year filter is active
+                year_match = False
+                year_mapping = {'1st': '1', '2nd': '2', '3rd': '3', '4th': '4'}
+                for year_filter in active_year_filters:
+                    if student['year'] == year_mapping[year_filter]:
+                        year_match = True
+                        break
+            
+            # College filter
+            college_match = True
+            active_college_filters = []
+            colleges = dh.college_db.load_data()
+            for college in colleges:
+                college_code = college['code']
+                if self.filter_vars[f'college_{college_code}'].get():
+                    active_college_filters.append(college_code)
+            
+            if active_college_filters:
+                # Only check if at least one college filter is active
+                college_match = False
+                student_college = program_college_map.get(student['program_code'])
+                if student_college and student_college in active_college_filters:
+                    college_match = True
+            
+            # If all active filters match, add to filtered list
+            if gender_match and year_match and college_match:
+                filtered_students.append(student)
+        
+        # If no filters are active, show all students
+        any_filter_active = any(var.get() for var in self.filter_vars.values())
+        if not any_filter_active:
+            filtered_students = students
+        
+        # Populate table with filtered results
+        for student in filtered_students:
+            self.student_tree.insert("", "end", values=list(student.values()))
+        
+        # Close filter window if provided
+        if filter_window:
+            filter_window.destroy()
+
+    def clear_all_filters(self):
+        # Reset all filter variables
+        if hasattr(self, 'filter_vars'):
+            for var in self.filter_vars.values():
+                var.set(False)
+        
+        # Refresh table to show all students
+        self.refresh_student_table()
 
     def refresh_student_table(self):
         for item in self.student_tree.get_children():
