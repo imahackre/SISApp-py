@@ -1,3 +1,4 @@
+from random import weibullvariate
 import customtkinter as ctk
 from tkinter import ttk, messagebox, Listbox, Toplevel, BooleanVar
 import data_handler as dh
@@ -8,9 +9,9 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("green")
 
 class SearchableCombobox(ctk.CTkFrame):
-    """A custom searchable combobox widget with dropdown functionality.
+    """a custom searchable combobox widget with dropdown functionality.
     
-    Provides a text entry field with searchable dropdown list that filters
+    provides a text entry field with searchable dropdown list that filters
     options based on user input.
     """
     def __init__(self, parent, placeholder_text="Select...", width=200, height=30, dropdown_height=150, **kwargs):
@@ -63,7 +64,7 @@ class SearchableCombobox(ctk.CTkFrame):
         if self.filtered_items:
             self.set(self.filtered_items[0])
             self.hide_dropdown()
-            # Clear focus by calling parent's reset method
+            # clear focus by calling parent's reset method
             if hasattr(self.master, 'reset_focus_state'):
                 self.master.reset_focus_state()
             else:
@@ -84,17 +85,16 @@ class SearchableCombobox(ctk.CTkFrame):
         self.dropdown_window = Toplevel(self)
         self.dropdown_window.overrideredirect(True)
         self.dropdown_window.configure(bg="#1a1a1a")
-        
-        # Add to global tracking
+
         active_dropdowns.append(self)
         self._in_active_dropdowns = True
         
-        # Position the dropdown
+        # position of dropdown
         x = self.winfo_rootx()
         y = self.winfo_rooty() + self.height
         self.dropdown_window.geometry(f"{self.width}x{self.dropdown_height}+{x}+{y}")
         
-        # Create listbox with scrollbar
+        # listbox with scrollbar
         list_frame = ctk.CTkFrame(self.dropdown_window, fg_color="#1a1a1a")
         list_frame.pack(fill="both", expand=True)
         
@@ -108,22 +108,16 @@ class SearchableCombobox(ctk.CTkFrame):
         self.listbox.pack(side="left", fill="both", expand=True)
         scrollbar.config(command=self.listbox.yview)
         
-        # Bind events
         self.listbox.bind("<ButtonRelease-1>", self.on_listbox_select)
         self.listbox.bind("<Motion>", self.on_listbox_motion)
         self.listbox.bind("<Leave>", self.on_listbox_leave)
         
         self.update_listbox()
-        
-        # Bind escape key to close dropdown
         self.dropdown_window.bind("<Escape>", lambda e: self.hide_dropdown())
-        
-        # Make the dropdown window grab focus
         self.dropdown_window.focus_set()
         
     def hide_dropdown(self):
         if self.dropdown_window and self.dropdown_window.winfo_exists():
-            # Remove from global tracking
             if self in active_dropdowns:
                 active_dropdowns.remove(self)
             self.dropdown_window.destroy()
@@ -143,7 +137,7 @@ class SearchableCombobox(ctk.CTkFrame):
             selected = self.listbox.get(self.listbox.curselection())
             self.set(selected)
             self.hide_dropdown()
-            # Clear focus by calling parent's reset method
+
             if hasattr(self.master, 'reset_focus_state'):
                 self.master.reset_focus_state()
             else:
@@ -175,27 +169,29 @@ class SISApp(ctk.CTk):
 
         self.setup_treeview_style()
 
-        # Tab Control using CTK Tabview
         self.tabview = ctk.CTkTabview(self, command=self.on_tab_change)
         self.tabview.pack(expand=True, fill="both", padx=20, pady=20)
 
-        # Main Frames (Tabs)
         self.student_tab = self.tabview.add("  Students  ")
         self.program_tab = self.tabview.add("  Programs  ")
         self.college_tab = self.tabview.add("  Colleges  ")
+        
+        # record count labels for each tab
+        self.student_count_label = None
+        self.program_count_label = None
+        self.college_count_label = None
+        self.filtered_student_count = None
 
-        # Init UI for each tab
         self.setup_college_ui()
         self.setup_program_ui()
         self.setup_student_ui()
         
-        """Dropdown behavior"""
+        # dropdown behavior
         self.bind_all("<Button-1>", self.on_global_click)
         self.last_focused_entry = None
         
     def reset_focus_state(self):
-        """Reset UI to initial state with no focused widgets."""
-        # Clear focus from all widgets by setting focus to main window
+        # clear focus from all widgets by setting focus to main window
         self.focus_set()
         self.last_focused_entry = None
         
@@ -239,22 +235,30 @@ class SISApp(ctk.CTk):
                   background=[("active", "#4a4a4a")],
                   foreground=[("active", "white")])
 
+    def update_all_record_counts(self):
+        # update college count
+        if self.college_count_label:
+            college_count = len(dh.college_db.load_data())
+            self.college_count_label.configure(text=f"Total Records: {college_count}")
+        
+        # update program count
+        if self.program_count_label:
+            program_count = len(dh.program_db.load_data())
+            self.program_count_label.configure(text=f"Total Records: {program_count}")
+        
+        # update student count
+        if self.student_count_label:
+            if hasattr(self, 'filtered_student_count') and self.filtered_student_count is not None:
+                total_count = len(dh.student_db.load_data())
+                self.student_count_label.configure(text=f"Showing: {self.filtered_student_count} / {total_count} records")
+            else:
+                student_count = len(dh.student_db.load_data())
+                self.student_count_label.configure(text=f"Total Records: {student_count}")
+
 
     # COLLEGES SECTION
 
     def create_button_frame(self, parent, add_cmd, update_cmd, delete_cmd, clear_cmd):
-        """Create a standardized button frame with CRUD operations.
-        
-        Args:
-            parent: Parent widget to contain the button frame
-            add_cmd: Command for Add button
-            update_cmd: Command for Update button  
-            delete_cmd: Command for Delete button
-            clear_cmd: Command for Clear button
-            
-        Returns:
-            The created button frame widget
-        """
         btn_frame = ctk.CTkFrame(parent, fg_color="transparent")
         btn_frame.pack(pady=20)
         
@@ -266,8 +270,7 @@ class SISApp(ctk.CTk):
         return btn_frame
 
     def setup_college_ui(self):
-        """Create and layout the college management interface."""
-        # Left input form
+        # left input form
         self.coll_form = ctk.CTkFrame(self.college_tab)
         self.coll_form.pack(side="left", fill="y", padx=10, pady=10)
 
@@ -282,17 +285,28 @@ class SISApp(ctk.CTk):
         self.create_button_frame(self.coll_form, self.add_college, self.update_college, 
                                 self.delete_college, self.clear_college_fields)
 
-        # Right table
+        # right table
         table_frame = ctk.CTkFrame(self.college_tab)
         table_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+        
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_rowconfigure(1, weight=0)
+        table_frame.grid_columnconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(1, weight=0)
+
+        # record count label for colleges
+        self.college_count_label = ctk.CTkLabel(table_frame, text="Total Records: 0", 
+                                                font=("Roboto", 12, "bold"), text_color="#2a942a")
+        self.college_count_label.grid(row=1, column=1, sticky="e", padx=5, pady=5)
 
         self.college_tree = ttk.Treeview(table_frame, columns=("Code", "Name"), show="headings")
         self.college_tree.heading("Code", text="College Code")
         self.college_tree.heading("Name", text="College Name")
-        self.college_tree.pack(fill="both", expand=True)
+        self.college_tree.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
         self.college_tree.bind("<<TreeviewSelect>>", self.on_college_select)
         
         self.refresh_college_table()
+        self.update_all_record_counts()
 
     def add_college(self):
         try:
@@ -315,6 +329,7 @@ class SISApp(ctk.CTk):
             dh.college_db.save_data(data)
             self.refresh_college_table()
             self.update_college_dropdown()
+            self.update_all_record_counts()
             messagebox.showinfo("College Added", "College added successfully!")
             self.clear_college_fields()
         except Exception as e:
@@ -358,6 +373,7 @@ class SISApp(ctk.CTk):
             dh.college_db.save_data(data)
             self.refresh_college_table()
             self.update_college_dropdown()
+            self.update_all_record_counts()
             messagebox.showinfo("College Updated", "College updated successfully!")
         self.clear_college_fields()
 
@@ -366,7 +382,7 @@ class SISApp(ctk.CTk):
         if not code:
             return
         
-        # Check if college is being used by programs (might change this to allow for deletion even if)
+        # check if college is being used by programs (might change this to allow for deletion even if)
         programs = dh.program_db.load_data()
         if any(p['college_code'] == code for p in programs):
             messagebox.showerror("Error", "Cannot delete. College has programs!")
@@ -378,6 +394,7 @@ class SISApp(ctk.CTk):
             dh.college_db.save_data(new_data)
             self.refresh_college_table()
             self.update_college_dropdown()
+            self.update_all_record_counts()
             messagebox.showinfo("College Deleted", "College deleted successfully!")
             self.clear_college_fields()
 
@@ -392,7 +409,7 @@ class SISApp(ctk.CTk):
     def setup_program_ui(self):
         self.prog_form = ctk.CTkFrame(self.program_tab)
 
-        # Left side form
+        # left side form
         self.prog_form.pack(side="left", fill="y", padx=10, pady=10)
         ctk.CTkLabel(self.prog_form, text="Program Information", font=("Roboto", 16, "bold")).pack(pady=10)
 
@@ -409,24 +426,34 @@ class SISApp(ctk.CTk):
 
         table_frame = ctk.CTkFrame(self.program_tab)
 
-        # Right side table
+        # right side table
         table_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
-        tree_container = ctk.CTkFrame(table_frame)
-        tree_container.pack(fill="both", expand=True)
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_rowconfigure(1, weight=0)
+        table_frame.grid_columnconfigure(0, weight=1)
 
-        self.program_tree = ttk.Treeview(tree_container, columns=("Code", "Name", "College"), show="headings")
-        self.program_tree.heading("Code", text="Program Code")
-        self.program_tree.heading("Name", text="Program Name")
-        self.program_tree.heading("College", text="College Code")
+        # record count label for programs
+        self.program_count_label = ctk.CTkLabel(table_frame, text="Total Records: 0", 
+                                               font=("Roboto", 12, "bold"), text_color="#2a942a")
+        self.program_count_label.grid(row=1, column=0, sticky="e", padx=5, pady=5)
         
+        tree_container = ctk.CTkFrame(table_frame)
+        tree_container.grid(row=0, column=0, sticky="nsew")
+        
+        self.program_tree = ttk.Treeview(tree_container, columns=("Program Code", "Program Name", "College Code"), show="headings")
         scrollbar = ttk.Scrollbar(tree_container, orient="vertical", command=self.program_tree.yview)
         self.program_tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
-
-        self.program_tree.pack(fill="both", expand=True)
+        self.program_tree.pack(side="left", fill="both", expand=True)
+        
+        for col in ("Program Code", "Program Name", "College Code"):
+            self.program_tree.heading(col, text=col + " ↕", command=lambda c=col: self.sort_program_table(c, False))
+            self.program_tree.column(col, width=100)
+        
         self.program_tree.bind("<<TreeviewSelect>>", self.on_program_select)
         self.refresh_program_table()
         self.update_college_dropdown()
+        self.update_all_record_counts()
 
     def update_college_dropdown(self):
         codes = [c['code'] for c in dh.college_db.load_data()]
@@ -451,6 +478,7 @@ class SISApp(ctk.CTk):
             dh.program_db.save_data(data)
             self.refresh_program_table()
             self.update_program_dropdown()
+            self.update_all_record_counts()
             messagebox.showinfo("Program Added", "Program added successfully!")
             self.clear_program_fields()
         except Exception as e:
@@ -461,6 +489,28 @@ class SISApp(ctk.CTk):
             self.program_tree.delete(item)
         for p in dh.program_db.load_data():
             self.program_tree.insert("", "end", values=(p['code'], p['name'], p['college_code']))
+
+    def sort_program_table(self, col, reverse):
+        col_mapping = {
+            "Program Code": "code",
+            "Program Name": "name",
+            "College Code": "college_code"
+        }
+
+        db_field = col_mapping.get(col, col.lower().replace(" ", "_"))
+        for header_col in ("Program Code", "Program Name", "College Code"):
+            self.program_tree.heading(header_col, text=header_col + " ↕")
+
+        arrow = " ▼" if reverse else " ▲"
+        self.program_tree.heading(col, text=col + arrow)
+
+        data = dh.program_db.load_data()
+        data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+        for item in self.program_tree.get_children():
+            self.program_tree.delete(item)
+        for p in data:
+            self.program_tree.insert("", "end", values=list(p.values()))
+        self.program_tree.heading(col, command=lambda: self.sort_program_table(col, not reverse))
 
     def on_program_select(self, event):
         selected = self.program_tree.selection()
@@ -497,6 +547,7 @@ class SISApp(ctk.CTk):
             dh.program_db.save_data(data)
             self.refresh_program_table()
             self.update_program_dropdown()
+            self.update_all_record_counts()
             messagebox.showinfo("Program Updated", "Program updated successfully!")
         self.clear_program_fields()
 
@@ -516,6 +567,7 @@ class SISApp(ctk.CTk):
             dh.program_db.save_data(new_data)
             self.refresh_program_table()
             self.update_program_dropdown()
+            self.update_all_record_counts()
             messagebox.showinfo("Program Deleted", "Program deleted successfully!")
             self.clear_program_fields()
 
@@ -531,7 +583,7 @@ class SISApp(ctk.CTk):
     def setup_student_ui(self):
         self.stud_form = ctk.CTkFrame(self.student_tab)
 
-        # Left side form
+        # left side form
         self.stud_form.pack(side="left", fill="y", padx=10, pady=10)
         ctk.CTkLabel(self.stud_form, text="Student Information", font=("Roboto", 16, "bold")).pack(pady=10)
         
@@ -556,25 +608,34 @@ class SISApp(ctk.CTk):
         self.create_button_frame(self.stud_form, self.add_student, self.update_student,
                                 self.delete_student, self.clear_student_fields)
 
-        # Right table & search
+        # right table & search
         right_frame = ctk.CTkFrame(self.student_tab)
         right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+        right_frame.grid_rowconfigure(0, weight=0)
+        right_frame.grid_rowconfigure(1, weight=1)
+        right_frame.grid_rowconfigure(2, weight=0)
+        right_frame.grid_columnconfigure(0, weight=1)
+
+        # record count label for students
+        self.student_count_label = ctk.CTkLabel(right_frame, text="Total Records: 0", 
+                                               font=("Roboto", 12, "bold"), text_color="#2a942a")
+        self.student_count_label.grid(row=2, column=0, sticky="e", padx=5, pady=5)
 
         sortFilter_frame = ctk.CTkFrame(right_frame)
-        sortFilter_frame.pack(pady=10, fill="x")
+        sortFilter_frame.grid(row=0, column=0, sticky="nsew")
 
         search_filter_frame = ctk.CTkFrame(sortFilter_frame, fg_color="transparent")
         search_filter_frame.pack()
 
         self.entry_search = ctk.CTkEntry(search_filter_frame, placeholder_text="Search students...", width=450)
-        self.entry_search.pack(side="left", padx=10)
+        self.entry_search.pack(side="left", padx=10, pady=10)
         self.entry_search.bind("<KeyRelease>", self.search_student)
         
         filter_button = ctk.CTkButton(search_filter_frame, text="Filter", command=self.open_filter_window, width=50)
-        filter_button.pack(side="right", padx=10)
+        filter_button.pack(side="right", padx=10, pady=10)
 
         tree_container = ctk.CTkFrame(right_frame)
-        tree_container.pack(fill="both", expand=True)
+        tree_container.grid(row=1, column=0, sticky="nsew")
 
         self.student_tree = ttk.Treeview(tree_container, columns=("ID", "First Name", "Last Name", "Program", "Year", "Gender"), show="headings")
         scrollbar = ttk.Scrollbar(tree_container, orient="vertical", command=self.student_tree.yview)
@@ -588,7 +649,8 @@ class SISApp(ctk.CTk):
 
         self.student_tree.bind("<<TreeviewSelect>>", self.on_student_select)
         self.refresh_student_table()
-        self.update_program_dropdown() 
+        self.update_program_dropdown()
+        self.update_all_record_counts() 
 
     def update_program_dropdown(self):
         programs = dh.program_db.load_data()
@@ -612,7 +674,7 @@ class SISApp(ctk.CTk):
                 messagebox.showerror("Error", "Format: YYYY-NNNN")
                 return
                 
-            # Check if the typed program exists
+            # check if the typed program exists
             programs = dh.program_db.load_data()
             program_codes = [p['code'] for p in programs]
             if pr not in program_codes:
@@ -626,6 +688,7 @@ class SISApp(ctk.CTk):
             data.append({'id': sid, 'firstname': fn, 'lastname': ln, 'program_code': pr, 'year': yr, 'gender': gn})
             dh.student_db.save_data(data)
             self.refresh_student_table()
+            self.update_all_record_counts()
             messagebox.showinfo("Student Added", "Student added successfully!")
             self.clear_student_fields()
         except Exception as e:
@@ -670,6 +733,7 @@ class SISApp(ctk.CTk):
         if changed:
             dh.student_db.save_data(data)
             self.refresh_student_table() 
+            self.update_all_record_counts()
             messagebox.showinfo("Student Updated", "Student updated successfully!")
         self.clear_student_fields()
 
@@ -682,6 +746,7 @@ class SISApp(ctk.CTk):
             data = [s for s in dh.student_db.load_data() if s['id'] != sid]
             dh.student_db.save_data(data)
             self.refresh_student_table()
+            self.update_all_record_counts()
             messagebox.showinfo("Student Deleted", "Student deleted successfully!")
             self.clear_student_fields()
 
@@ -699,9 +764,20 @@ class SISApp(ctk.CTk):
         query = self.entry_search.get().lower()
         for item in self.student_tree.get_children():
             self.student_tree.delete(item)
+        
+        search_results = []
         for s in dh.student_db.load_data():
             if any(query in str(v).lower() for v in s.values()):
                 self.student_tree.insert("", "end", values=list(s.values()))
+                search_results.append(s)
+        
+        # update filtered count for search results
+        if query:
+            self.filtered_student_count = len(search_results)
+        else:
+            self.filtered_student_count = None
+        
+        self.update_all_record_counts()
 
     def open_filter_window(self):
         filter_window = Toplevel(self.master)
@@ -722,7 +798,7 @@ class SISApp(ctk.CTk):
         ltop_frame = ctk.CTkFrame(left_frame)
         ltop_frame.pack(fill="x", expand=True)
 
-        # Gender filter
+        # gender filter
         gender_frame = ctk.CTkFrame(ltop_frame, fg_color="transparent")
         gender_frame.pack(side="left", fill="both")
         ctk.CTkLabel(gender_frame, text="Gender:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
@@ -738,7 +814,7 @@ class SISApp(ctk.CTk):
         lbot_frame = ctk.CTkFrame(left_frame)
         lbot_frame.pack(fill="x", expand=True)
 
-        # Year level filter
+        # year level filter
         year_frame = ctk.CTkFrame(lbot_frame, fg_color="transparent")
         year_frame.pack(fill="both")
         ctk.CTkLabel(year_frame, text="Year Level:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
@@ -763,7 +839,7 @@ class SISApp(ctk.CTk):
         right_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
         
-        # College filter
+        # college filter
         college_frame = ctk.CTkFrame(right_frame)
         college_frame.pack(fill="both")
         ctk.CTkLabel(college_frame, text="College:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
@@ -776,7 +852,7 @@ class SISApp(ctk.CTk):
                 self.filter_vars[var_name] = BooleanVar(value=False)
             ctk.CTkCheckBox(college_frame, text=college_code, variable=self.filter_vars[var_name]).pack(pady=3)
         
-        # Buttons frame
+        # buttons frame
         button_frame = ctk.CTkFrame(filter_window)
         button_frame.pack(fill="x", padx=15, pady=(0, 15))
         
@@ -785,37 +861,32 @@ class SISApp(ctk.CTk):
         ctk.CTkButton(button_frame, text="Cancel", command=filter_window.destroy, width=100).pack(side="left", padx=8)
 
     def apply_filters(self, filter_window=None):
-        # Clear current table
         for item in self.student_tree.get_children():
             self.student_tree.delete(item)
-        
-        # Get all students
+
         students = dh.student_db.load_data()
-        
-        # Apply filters
         filtered_students = []
         
-        # Pre-load programs for college lookup
+        # pre-load programs for college lookup
         programs = dh.program_db.load_data()
         program_college_map = {prog['code']: prog['college_code'] for prog in programs}
         
         for student in students:
-            # Gender filter
+            # gender filter
             gender_match = True
             if self.filter_vars['male'].get() or self.filter_vars['female'].get():
-                # Only check if at least one gender filter is active
+                # only check if at least one gender filter is active
                 gender_match = False
                 if self.filter_vars['male'].get() and student['gender'].lower() == 'male':
                     gender_match = True
                 if self.filter_vars['female'].get() and student['gender'].lower() == 'female':
                     gender_match = True
             
-            # Year level filter
+            # year level filter
             year_match = True
             active_year_filters = [year for year in ['1st', '2nd', '3rd', '4th'] 
                                  if self.filter_vars[f'year_{year}'].get()]
             if active_year_filters:
-                # Only check if at least one year filter is active
                 year_match = False
                 year_mapping = {'1st': '1', '2nd': '2', '3rd': '3', '4th': '4'}
                 for year_filter in active_year_filters:
@@ -823,7 +894,7 @@ class SISApp(ctk.CTk):
                         year_match = True
                         break
             
-            # College filter
+            # college filter
             college_match = True
             active_college_filters = []
             colleges = dh.college_db.load_data()
@@ -833,37 +904,38 @@ class SISApp(ctk.CTk):
                     active_college_filters.append(college_code)
             
             if active_college_filters:
-                # Only check if at least one college filter is active
                 college_match = False
                 student_college = program_college_map.get(student['program_code'])
                 if student_college and student_college in active_college_filters:
                     college_match = True
             
-            # If all active filters match, add to filtered list
+            # if all active filters match, add to filtered list
             if gender_match and year_match and college_match:
                 filtered_students.append(student)
         
-        # If no filters are active, show all students
+        # ff no filters are active, show all students
         any_filter_active = any(var.get() for var in self.filter_vars.values())
         if not any_filter_active:
             filtered_students = students
         
-        # Populate table with filtered results
+        # populate table with filtered results
         for student in filtered_students:
             self.student_tree.insert("", "end", values=list(student.values()))
-        
-        # Close filter window if provided
+        self.filtered_student_count = len(filtered_students)
+        self.update_all_record_counts()
+
+        # close filter window if provided
         if filter_window:
             filter_window.destroy()
 
     def clear_all_filters(self):
-        # Reset all filter variables
         if hasattr(self, 'filter_vars'):
             for var in self.filter_vars.values():
                 var.set(False)
         
-        # Refresh table to show all students
+        self.filtered_student_count = None
         self.refresh_student_table()
+        self.update_all_record_counts()
 
     def refresh_student_table(self):
         for item in self.student_tree.get_children():
@@ -872,7 +944,7 @@ class SISApp(ctk.CTk):
             self.student_tree.insert("", "end", values=list(s.values()))
 
     def sort_student_table(self, col, reverse):
-        # Map column headers to database field names
+        # map column headers to database field names
         col_mapping = {
             "ID": "id",
             "First Name": "firstname", 
@@ -881,15 +953,14 @@ class SISApp(ctk.CTk):
             "Year": "year",
             "Gender": "gender"
         }
-        
-        # Get the correct database field name
+
         db_field = col_mapping.get(col, col.lower().replace(" ", "_"))
         
-        # Reset all headers to subtle indicators
+        # reset all headers to subtle indicators
         for header_col in ("ID", "First Name", "Last Name", "Program", "Year", "Gender"):
             self.student_tree.heading(header_col, text=header_col + " ↕")
         
-        # Add prominent arrow to current column to show active sort direction
+        # add prominent arrow to current column to show active sort direction
         arrow = " ▼" if reverse else " ▲"
         self.student_tree.heading(col, text=col + arrow)
         
