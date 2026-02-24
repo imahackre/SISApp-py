@@ -260,78 +260,6 @@ class SISApp(ctk.CTk):
                 student_count = len(dh.student_db.load_data())
                 self.student_count_label.configure(text=f"Total Records: {student_count}")
 
-    def open_filter_window_prog(self):
-        filter_window = Toplevel(self.master)
-        filter_window.title("Filter Programs")
-        filter_window.geometry("350x350")
-        filter_window.configure(bg='#2b2b2b')
-        filter_window.resizable(False, False)
-        
-        if not hasattr(self, 'prog_filter_vars'):
-            self.prog_filter_vars = {}
-        
-        main_frame = ctk.CTkFrame(filter_window)
-        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        # college filter
-        college_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        college_frame.pack(fill="both")
-        ctk.CTkLabel(college_frame, text="College:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
-        
-        colleges = dh.college_db.load_data()
-        for college in colleges:
-            college_code = college['code']
-            var_name = f'prog_college_{college_code}'
-            if var_name not in self.prog_filter_vars:
-                self.prog_filter_vars[var_name] = BooleanVar(value=False)
-            ctk.CTkCheckBox(college_frame, text=college_code, variable=self.prog_filter_vars[var_name]).pack(pady=3)
-
-        button_frame = ctk.CTkFrame(filter_window)
-        button_frame.pack(fill="x", padx=15, pady=(0, 15))
-        
-        ctk.CTkButton(button_frame, text="Apply Filters", command=lambda: self.apply_prog_filters(filter_window), width=100).pack(side="left", padx=8)
-        ctk.CTkButton(button_frame, text="Clear All", command=self.clear_prog_filters, width=100).pack(side="left", padx=8)
-        ctk.CTkButton(button_frame, text="Cancel", command=filter_window.destroy, width=100).pack(side="left", padx=8)
-
-    def apply_prog_filters(self, filter_window=None):
-        for item in self.program_tree.get_children():
-            self.program_tree.delete(item)
-    
-        programs = dh.program_db.load_data()
-        filtered_programs = []
-        
-        active_college_filters = []
-        colleges = dh.college_db.load_data()
-        for college in colleges:
-            college_code = college['code']
-            if self.prog_filter_vars[f'prog_college_{college_code}'].get():
-                active_college_filters.append(college_code)
-        
-        if active_college_filters:
-            for program in programs:
-                if program['college_code'] in active_college_filters:
-                    filtered_programs.append(program)
-        else:
-            filtered_programs = programs
-        
-        for program in filtered_programs:
-            self.program_tree.insert("", "end", values=(program['code'], program['name'], program['college_code']))
-
-        self.filtered_program_count = len(filtered_programs)
-        self.update_all_record_counts()
-        
-        if filter_window:
-            filter_window.destroy()
-            
-    def clear_prog_filters(self):
-        if hasattr(self, 'prog_filter_vars'):
-            for var in self.prog_filter_vars.values():
-                var.set(False)
-        
-        self.filtered_program_count = None
-        self.refresh_program_table()
-        self.update_all_record_counts()
-
     # COLLEGES SECTION
 
     def create_button_frame(self, parent, add_cmd, update_cmd, delete_cmd, clear_cmd):
@@ -411,24 +339,6 @@ class SISApp(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to add college: {str(e)}")
 
-    def refresh_college_table(self):
-        for item in self.college_tree.get_children():
-            self.college_tree.delete(item)
-        for college in dh.college_db.load_data():
-            self.college_tree.insert("", "end", values=(college['code'], college['name']))
-
-    def on_college_select(self, event):
-        selected = self.college_tree.selection()
-        if not selected:
-            return
-        val = self.college_tree.item(selected[0])['values']
-        self.clear_college_fields()
-        self.entry_college_code.delete(0, 'end')
-        self.entry_college_code.insert(0, val[0])
-        self.entry_college_code.configure(state="disabled")
-        self.entry_college_name.delete(0, 'end')
-        self.entry_college_name.insert(0, val[1])
-
     def update_college(self):
         code = self.entry_college_code.get().strip()
         name = self.entry_college_name.get().strip()
@@ -479,6 +389,23 @@ class SISApp(ctk.CTk):
         self.entry_college_code.delete(0, 'end')
         self.entry_college_name.delete(0, 'end')
 
+    def on_college_select(self, event):
+        selected = self.college_tree.selection()
+        if not selected:
+            return
+        val = self.college_tree.item(selected[0])['values']
+        self.clear_college_fields()
+        self.entry_college_code.delete(0, 'end')
+        self.entry_college_code.insert(0, val[0])
+        self.entry_college_code.configure(state="disabled")
+        self.entry_college_name.delete(0, 'end')
+        self.entry_college_name.insert(0, val[1])
+
+    def refresh_college_table(self):
+        for item in self.college_tree.get_children():
+            self.college_tree.delete(item)
+        for college in dh.college_db.load_data():
+            self.college_tree.insert("", "end", values=(college['code'], college['name']))
 
     # PROGRAMS SECTION
 
@@ -547,10 +474,6 @@ class SISApp(ctk.CTk):
         self.update_college_dropdown()
         self.update_all_record_counts()
 
-    def update_college_dropdown(self):
-        codes = [c['code'] for c in dh.college_db.load_data()]
-        self.combo_prog_college.configure(values=codes if codes else ["No Colleges"])
-
     def add_program(self):
         try:
             code, name, coll = self.entry_prog_code.get().strip().upper(), self.entry_prog_name.get().strip(), self.combo_prog_college.get()
@@ -575,6 +498,75 @@ class SISApp(ctk.CTk):
             self.clear_program_fields()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to add program: {str(e)}")
+
+    def update_program(self):
+        code = self.entry_prog_code.get().strip()
+        name = self.entry_prog_name.get().strip()
+        coll = self.combo_prog_college.get()
+        
+        if not all([code, name, coll]) or coll == "Select College":
+            messagebox.showerror("Error", "All fields required!")
+            return
+            
+        data = dh.program_db.load_data()
+        changed = False
+        for p in data:
+            if p['code'] == code:
+                if p['name'] != name or p['college_code'] != coll:
+                    p['name'], p['college_code'] = name, coll
+                    changed = True
+                break
+        
+        if changed:
+            dh.program_db.save_data(data)
+            self.refresh_program_table()
+            self.update_program_dropdown()
+            self.update_all_record_counts()
+            messagebox.showinfo("Program Updated", "Program updated successfully!")
+        self.clear_program_fields()
+
+    def delete_program(self):
+        code = self.entry_prog_code.get().strip()
+        if not code:
+            return
+            
+        students = dh.student_db.load_data()
+        if any(s['program_code'] == code for s in students):
+            messagebox.showerror("Error", "Cannot delete. Students enrolled!")
+            return
+            
+        if messagebox.askyesno("Confirm", f"Delete program {code}?"):
+            data = dh.program_db.load_data()
+            new_data = [p for p in data if p['code'] != code]
+            dh.program_db.save_data(new_data)
+            self.refresh_program_table()
+            self.update_program_dropdown()
+            self.update_all_record_counts()
+            messagebox.showinfo("Program Deleted", "Program deleted successfully!")
+            self.clear_program_fields()
+
+    def clear_program_fields(self):
+        self.entry_prog_code.configure(state="normal")
+        self.entry_prog_code.delete(0, 'end')
+        self.entry_prog_name.delete(0, 'end')
+        self.combo_prog_college.set('Select College')
+
+    def on_program_select(self, event):
+        selected = self.program_tree.selection()
+        if not selected:
+            return
+        val = self.program_tree.item(selected[0])['values']
+        self.clear_program_fields()
+        self.entry_prog_code.delete(0, 'end')
+        self.entry_prog_code.insert(0, val[0])
+        self.entry_prog_code.configure(state="disabled")
+        self.entry_prog_name.delete(0, 'end')
+        self.entry_prog_name.insert(0, val[1])
+        self.combo_prog_college.set(val[2])
+
+    def update_college_dropdown(self):
+        codes = [c['code'] for c in dh.college_db.load_data()]
+        self.combo_prog_college.configure(values=codes if codes else ["No Colleges"])
 
     def refresh_program_table(self):
         for item in self.program_tree.get_children():
@@ -643,72 +635,78 @@ class SISApp(ctk.CTk):
                 self.program_tree.insert("", "end", values=list(p.values()))
         
         self.program_tree.heading(col, command=lambda: self.sort_program_table(col, not reverse))
-
-    def on_program_select(self, event):
-        selected = self.program_tree.selection()
-        if not selected:
-            return
-        val = self.program_tree.item(selected[0])['values']
-        self.clear_program_fields()
-        self.entry_prog_code.delete(0, 'end')
-        self.entry_prog_code.insert(0, val[0])
-        self.entry_prog_code.configure(state="disabled")
-        self.entry_prog_name.delete(0, 'end')
-        self.entry_prog_name.insert(0, val[1])
-        self.combo_prog_college.set(val[2])
-
-    def update_program(self):
-        code = self.entry_prog_code.get().strip()
-        name = self.entry_prog_name.get().strip()
-        coll = self.combo_prog_college.get()
-        
-        if not all([code, name, coll]) or coll == "Select College":
-            messagebox.showerror("Error", "All fields required!")
-            return
-            
-        data = dh.program_db.load_data()
-        changed = False
-        for p in data:
-            if p['code'] == code:
-                if p['name'] != name or p['college_code'] != coll:
-                    p['name'], p['college_code'] = name, coll
-                    changed = True
-                break
-        
-        if changed:
-            dh.program_db.save_data(data)
-            self.refresh_program_table()
-            self.update_program_dropdown()
-            self.update_all_record_counts()
-            messagebox.showinfo("Program Updated", "Program updated successfully!")
-        self.clear_program_fields()
-
-    def delete_program(self):
-        code = self.entry_prog_code.get().strip()
-        if not code:
-            return
-            
-        students = dh.student_db.load_data()
-        if any(s['program_code'] == code for s in students):
-            messagebox.showerror("Error", "Cannot delete. Students enrolled!")
-            return
-            
-        if messagebox.askyesno("Confirm", f"Delete program {code}?"):
-            data = dh.program_db.load_data()
-            new_data = [p for p in data if p['code'] != code]
-            dh.program_db.save_data(new_data)
-            self.refresh_program_table()
-            self.update_program_dropdown()
-            self.update_all_record_counts()
-            messagebox.showinfo("Program Deleted", "Program deleted successfully!")
-            self.clear_program_fields()
-
-    def clear_program_fields(self):
-        self.entry_prog_code.configure(state="normal")
-        self.entry_prog_code.delete(0, 'end')
-        self.entry_prog_name.delete(0, 'end')
-        self.combo_prog_college.set('Select College')
     
+    def open_filter_window_prog(self):
+        filter_window = Toplevel(self.master)
+        filter_window.title("Filter Programs")
+        filter_window.geometry("350x350")
+        filter_window.configure(bg='#2b2b2b')
+        filter_window.resizable(False, False)
+        
+        if not hasattr(self, 'prog_filter_vars'):
+            self.prog_filter_vars = {}
+        
+        main_frame = ctk.CTkFrame(filter_window)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # college filter
+        college_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        college_frame.pack(fill="both")
+        ctk.CTkLabel(college_frame, text="College:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        
+        colleges = dh.college_db.load_data()
+        for college in colleges:
+            college_code = college['code']
+            var_name = f'prog_college_{college_code}'
+            if var_name not in self.prog_filter_vars:
+                self.prog_filter_vars[var_name] = BooleanVar(value=False)
+            ctk.CTkCheckBox(college_frame, text=college_code, variable=self.prog_filter_vars[var_name]).pack(pady=3)
+
+        button_frame = ctk.CTkFrame(filter_window)
+        button_frame.pack(fill="x", padx=15, pady=(0, 15))
+        
+        ctk.CTkButton(button_frame, text="Apply Filters", command=lambda: self.apply_prog_filters(filter_window), width=100).pack(side="left", padx=8)
+        ctk.CTkButton(button_frame, text="Clear All", command=self.clear_prog_filters, width=100).pack(side="left", padx=8)
+        ctk.CTkButton(button_frame, text="Cancel", command=filter_window.destroy, width=100).pack(side="left", padx=8)
+
+    def apply_prog_filters(self, filter_window=None):
+        for item in self.program_tree.get_children():
+            self.program_tree.delete(item)
+    
+        programs = dh.program_db.load_data()
+        filtered_programs = []
+        
+        active_college_filters = []
+        colleges = dh.college_db.load_data()
+        for college in colleges:
+            college_code = college['code']
+            if self.prog_filter_vars[f'prog_college_{college_code}'].get():
+                active_college_filters.append(college_code)
+        
+        if active_college_filters:
+            for program in programs:
+                if program['college_code'] in active_college_filters:
+                    filtered_programs.append(program)
+        else:
+            filtered_programs = programs
+        
+        for program in filtered_programs:
+            self.program_tree.insert("", "end", values=(program['code'], program['name'], program['college_code']))
+
+        self.filtered_program_count = len(filtered_programs)
+        self.update_all_record_counts()
+        
+        if filter_window:
+            filter_window.destroy()
+            
+    def clear_prog_filters(self):
+        if hasattr(self, 'prog_filter_vars'):
+            for var in self.prog_filter_vars.values():
+                var.set(False)
+        
+        self.filtered_program_count = None
+        self.refresh_program_table()
+        self.update_all_record_counts()
 
     # STUDENTS SECTION
 
@@ -786,11 +784,6 @@ class SISApp(ctk.CTk):
         self.update_program_dropdown()
         self.update_all_record_counts() 
 
-    def update_program_dropdown(self):
-        programs = dh.program_db.load_data()
-        codes = [p['code'] for p in programs]
-        self.combo_stud_prog.set_items(codes if codes else ["No Programs"])
-
     def add_student(self):
         try:
             sid = self.entry_stud_id.get().strip()
@@ -827,20 +820,6 @@ class SISApp(ctk.CTk):
             self.clear_student_fields()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to add student: {str(e)}")
-
-    def on_student_select(self, event):
-        selected = self.student_tree.selection()
-        if not selected:
-            return
-        val = self.student_tree.item(selected[0])['values']
-        self.clear_student_fields()
-        self.entry_stud_id.insert(0, val[0])
-        self.entry_stud_id.configure(state="disabled")
-        self.entry_stud_fname.insert(0, val[1])
-        self.entry_stud_lname.insert(0, val[2])
-        self.combo_stud_prog.set(val[3])
-        self.combo_stud_year.set(str(val[4]))
-        self.combo_stud_gender.set(val[5])
 
     def update_student(self):
         sid = self.entry_stud_id.get().strip()
@@ -894,6 +873,31 @@ class SISApp(ctk.CTk):
         self.combo_stud_year.set('Select Year')
         self.combo_stud_gender.set('Select Gender')
 
+    def on_student_select(self, event):
+        selected = self.student_tree.selection()
+        if not selected:
+            return
+        val = self.student_tree.item(selected[0])['values']
+        self.clear_student_fields()
+        self.entry_stud_id.insert(0, val[0])
+        self.entry_stud_id.configure(state="disabled")
+        self.entry_stud_fname.insert(0, val[1])
+        self.entry_stud_lname.insert(0, val[2])
+        self.combo_stud_prog.set(val[3])
+        self.combo_stud_year.set(str(val[4]))
+        self.combo_stud_gender.set(val[5])
+
+    def update_program_dropdown(self):
+        programs = dh.program_db.load_data()
+        codes = [p['code'] for p in programs]
+        self.combo_stud_prog.set_items(codes if codes else ["No Programs"])
+
+    def refresh_student_table(self):
+        for item in self.student_tree.get_children():
+            self.student_tree.delete(item)
+        for s in dh.student_db.load_data():
+            self.student_tree.insert("", "end", values=list(s.values()))
+
     def search_student(self, event):
         query = self.entry_search.get().lower()
         for item in self.student_tree.get_children():
@@ -912,6 +916,56 @@ class SISApp(ctk.CTk):
             self.filtered_student_count = None
         
         self.update_all_record_counts()
+
+    def sort_student_table(self, col, reverse):
+        # map column headers to database field names
+        col_mapping = {
+            "ID": "id",
+            "First Name": "firstname", 
+            "Last Name": "lastname",
+            "Program": "program_code",
+            "Year": "year",
+            "Gender": "gender"
+        }
+
+        db_field = col_mapping.get(col, col.lower().replace(" ", "_"))
+        
+        # reset all headers to subtle indicators
+        for header_col in ("ID", "First Name", "Last Name", "Program", "Year", "Gender"):
+            self.student_tree.heading(header_col, text=header_col + " ↕")
+        
+        # add prominent arrow to current column to show active sort direction
+        arrow = " ▼" if reverse else " ▲"
+        self.student_tree.heading(col, text=col + arrow)
+        
+        if hasattr(self, 'filtered_student_count') and self.filtered_student_count is not None:
+            current_items = []
+            for item in self.student_tree.get_children():
+                values = self.student_tree.item(item)['values']
+                current_items.append({
+                    'id': values[0],
+                    'firstname': values[1],
+                    'lastname': values[2],
+                    'program_code': values[3],
+                    'year': values[4],
+                    'gender': values[5]
+                })
+            
+            current_items.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+            
+            for item in self.student_tree.get_children():
+                self.student_tree.delete(item)
+            for s in current_items:
+                self.student_tree.insert("", "end", values=list(s.values()))
+        else:
+            data = dh.student_db.load_data()
+            data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+            for item in self.student_tree.get_children():
+                self.student_tree.delete(item)
+            for s in data:
+                self.student_tree.insert("", "end", values=list(s.values()))
+        
+        self.student_tree.heading(col, command=lambda: self.sort_student_table(col, not reverse))
 
     def open_filter_window_stud(self):
         filter_window = Toplevel(self.master)
@@ -1070,62 +1124,6 @@ class SISApp(ctk.CTk):
         self.filtered_student_count = None
         self.refresh_student_table()
         self.update_all_record_counts()
-
-    def refresh_student_table(self):
-        for item in self.student_tree.get_children():
-            self.student_tree.delete(item)
-        for s in dh.student_db.load_data():
-            self.student_tree.insert("", "end", values=list(s.values()))
-
-    def sort_student_table(self, col, reverse):
-        # map column headers to database field names
-        col_mapping = {
-            "ID": "id",
-            "First Name": "firstname", 
-            "Last Name": "lastname",
-            "Program": "program_code",
-            "Year": "year",
-            "Gender": "gender"
-        }
-
-        db_field = col_mapping.get(col, col.lower().replace(" ", "_"))
-        
-        # reset all headers to subtle indicators
-        for header_col in ("ID", "First Name", "Last Name", "Program", "Year", "Gender"):
-            self.student_tree.heading(header_col, text=header_col + " ↕")
-        
-        # add prominent arrow to current column to show active sort direction
-        arrow = " ▼" if reverse else " ▲"
-        self.student_tree.heading(col, text=col + arrow)
-        
-        if hasattr(self, 'filtered_student_count') and self.filtered_student_count is not None:
-            current_items = []
-            for item in self.student_tree.get_children():
-                values = self.student_tree.item(item)['values']
-                current_items.append({
-                    'id': values[0],
-                    'firstname': values[1],
-                    'lastname': values[2],
-                    'program_code': values[3],
-                    'year': values[4],
-                    'gender': values[5]
-                })
-            
-            current_items.sort(key=lambda x: str(x[db_field]), reverse=reverse)
-            
-            for item in self.student_tree.get_children():
-                self.student_tree.delete(item)
-            for s in current_items:
-                self.student_tree.insert("", "end", values=list(s.values()))
-        else:
-            data = dh.student_db.load_data()
-            data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
-            for item in self.student_tree.get_children():
-                self.student_tree.delete(item)
-            for s in data:
-                self.student_tree.insert("", "end", values=list(s.values()))
-        
-        self.student_tree.heading(col, command=lambda: self.sort_student_table(col, not reverse))
 
     def on_tab_change(self):
         tab = self.tabview.get().strip()
