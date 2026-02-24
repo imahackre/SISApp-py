@@ -1,0 +1,41 @@
+id,firstname,lastname,program_code,year,gender
+2022-0001,Juan,Dela Cruz,BSCS,3,Male
+2023-0002,Maria,Santos,BSIT,2,Female
+2024-0003,Antonio,Luna,BSCE,1,Male
+2021-0004,Leonor,Rivera,BSA,4,Female
+2022-0005,Jose,Rizal,BSME,3,Male
+2023-0006,Gabriela,Silang,BSN,2,Female
+2024-0007,Andres,Bonifacio,BSEE,1,Male
+2021-0008,Melchora,Aquino,BSE-Eng,4,Female
+2022-0009,Apolinario,Mabini,BSPolSci,3,Male
+2023-0010,Teresa,Magbanua,BSPsych,2,Female
+2024-0011,Emilio,Jacinto,BSMath,1,Male
+2021-0012,Gregoria,de Jesus,BSBio,4,Female
+2022-0013,Marcelo,del Pilar,BSStat,3,Male
+2023-0014,Sisa,Narcisa,BSPhys,2,Female
+2024-0015,Crisostomo,Ibarra,BSCE,1,Male
+2021-0016,Paulita,Gomez,BSBA-MM,4,Female
+2022-0017,Isagani,Reyes,BSECE,3,Male
+2023-0018,Doña,Victorina,BSChem,2,Female
+2024-0019,Basilio,Santos,BSCS,1,Male
+2021-0020,Crispin,Santos,BSIT,4,Male
+2022-0021,Elias,Salva,BSEE,3,Male
+2023-0022,Salome,Luna,BSBio,2,Female
+2024-0023,Simoun,Ibarra,BSME,1,Male
+2021-0024,Juli,Sanjuan,BSN,4,Female
+2022-0025,Macaraig,Pascual,BSCE,3,Male
+2023-0026,Sandoval,Castillo,BSBA-MM,2,Male
+2024-0027,Pecson,Villanueva,BSPsych,1,Male
+2021-0028,Tadeo,Genato,BSE-Math,4,Male
+2022-0029,Placido,Penitente,BSPhys,3,Male
+2023-0030,Victorina,de Espadaña,BSHM,2,Female
+2024-0031,Don,Tiburcio,BSStat,1,Male
+2021-0032,Lope,K. Santos,BSE-Fil,4,Male
+2022-0033,Benigno,Ramos,BSME,3,Male
+2023-0034,Corazon,Aquino,BSBA-MM,2,Female
+2024-0035,Ramon,Magsaysay,BSCE,1,Male
+2021-0036,Miriam,Defensor,BSPolSci,4,Female
+2022-0037,Ferdinand,Marcos,BSA,3,Male
+2023-0038,Gloria,Arroyo,BSBio,2,Female
+2024-0039,Rodrigo,Duterte,BSPolSci,1,Male
+2021-0040,Bongbong,Marcos,BSBA-MM,4,Male

@@ -1,0 +1,41 @@
+code,name,college_code
+BSCS,Bachelor of Science in Computer Science,CCS
+BSIT,Bachelor of Science in Information Technology,CCS
+BSCE,Bachelor of Science in Civil Engineering,COE
+BSME,Bachelor of Science in Mechanical Engineering,COE
+BSEE,Bachelor of Science in Electrical Engineering,COE
+BSECE,Bachelor of Science in Electronics Engineering,COE
+BSA,Bachelor of Science in Accountancy,CEBA
+BSBA-MM,Bachelor of Science in Business Administration Major in Marketing,CEBA
+BSE-Eng,Bachelor of Science in English Education,CED
+BSE-Math,Bachelor of Science in Mathematics Education,CED
+BSPsych,Bachelor of Science in Psychology,CASS
+BSPolSci,Bachelor of Science in Political Science,CASS
+BSN,Bachelor of Science in Nursing,CHS
+BSBio,Bachelor of Science in Biology,CSM
+BSMath,Bachelor of Science in Mathematics,CSM
+BSChem,Bachelor of Science in Chemistry,CSM
+BSPhys,Bachelor of Science in Physics,CSM
+BSStat,Bachelor of Science in Statistics,CSM
+BSE-Fil,Bachelor of Science in Filipino Education,CED
+BSEntrep,Bachelor of Science in Entrepreneurship,CEBA
+BSIS,Bachelor of Science in Information Systems,CCS
+BSCerE,Bachelor of Science in Ceramics Engineering,COE
+BSMetE,Bachelor of Science in Metallurgical Engineering,COE
+BSEnE,Bachelor of Science in Environmental Engineering,COE
+BSInduE,Bachelor of Science in Industrial Engineering,COE
+BSESS,Bachelor of Science in Exercise and Sports Sciences,CHS
+BSPharma,Bachelor of Science in Pharmacy,CHS
+BSPH,Bachelor of Science in Public Health,CHS
+BSES,Bachelor of Science in Environmental Science,CSM
+BSMarineBio,Bachelor of Science in Marine Biology,CSM
+BACom,Bachelor of Arts in Communication,CASS
+BAHist,Bachelor of Arts in History,CASS
+BASoc,Bachelor of Arts in Sociology,CASS
+BAPhilo,Bachelor of Arts in Philosophy,CASS
+BECEd,Bachelor of Early Childhood Education,CED
+BSNE,Bachelor of Special Needs Education,CED
+BTVTED,Bachelor of Technical-Vocational Teacher Education,CED
+BSHM,Bachelor of Science in Hospitality Management,CEBA
+BSTM,Bachelor of Science in Tourism Management,CEBA
+BSEcon,Bachelor of Science in Economics,CEBA
