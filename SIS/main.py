@@ -180,7 +180,9 @@ class SISApp(ctk.CTk):
         self.student_count_label = None
         self.program_count_label = None
         self.college_count_label = None
+
         self.filtered_student_count = None
+        self.filtered_program_count = None
 
         self.setup_college_ui()
         self.setup_program_ui()
@@ -243,18 +245,93 @@ class SISApp(ctk.CTk):
         
         # update program count
         if self.program_count_label:
-            program_count = len(dh.program_db.load_data())
-            self.program_count_label.configure(text=f"Total Records: {program_count}")
+            if hasattr(self, 'filtered_program_count') and self.filtered_program_count is not None:
+                total_program_count = len(dh.program_db.load_data())
+                self.program_count_label.configure(text=f"Showing: {self.filtered_program_count} / {total_program_count} records")
+            else:
+                program_count = len(dh.program_db.load_data())
+                self.program_count_label.configure(text=f"Total Records: {program_count}")
         
         # update student count
         if self.student_count_label:
             if hasattr(self, 'filtered_student_count') and self.filtered_student_count is not None:
-                total_count = len(dh.student_db.load_data())
-                self.student_count_label.configure(text=f"Showing: {self.filtered_student_count} / {total_count} records")
+                total_student_count = len(dh.student_db.load_data())
+                self.student_count_label.configure(text=f"Showing: {self.filtered_student_count} / {total_student_count} records")
             else:
                 student_count = len(dh.student_db.load_data())
                 self.student_count_label.configure(text=f"Total Records: {student_count}")
 
+    def open_filter_window_prog(self):
+        filter_window = Toplevel(self.master)
+        filter_window.title("Filter Programs")
+        filter_window.geometry("350x350")
+        filter_window.configure(bg='#2b2b2b')
+        filter_window.resizable(False, False)
+        
+        if not hasattr(self, 'prog_filter_vars'):
+            self.prog_filter_vars = {}
+        
+        main_frame = ctk.CTkFrame(filter_window)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # college filter
+        college_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        college_frame.pack(fill="both")
+        ctk.CTkLabel(college_frame, text="College:", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        
+        colleges = dh.college_db.load_data()
+        for college in colleges:
+            college_code = college['code']
+            var_name = f'prog_college_{college_code}'
+            if var_name not in self.prog_filter_vars:
+                self.prog_filter_vars[var_name] = BooleanVar(value=False)
+            ctk.CTkCheckBox(college_frame, text=college_code, variable=self.prog_filter_vars[var_name]).pack(pady=3)
+
+        button_frame = ctk.CTkFrame(filter_window)
+        button_frame.pack(fill="x", padx=15, pady=(0, 15))
+        
+        ctk.CTkButton(button_frame, text="Apply Filters", command=lambda: self.apply_prog_filters(filter_window), width=100).pack(side="left", padx=8)
+        ctk.CTkButton(button_frame, text="Clear All", command=self.clear_prog_filters, width=100).pack(side="left", padx=8)
+        ctk.CTkButton(button_frame, text="Cancel", command=filter_window.destroy, width=100).pack(side="left", padx=8)
+
+    def apply_prog_filters(self, filter_window=None):
+        for item in self.program_tree.get_children():
+            self.program_tree.delete(item)
+    
+        programs = dh.program_db.load_data()
+        filtered_programs = []
+        
+        active_college_filters = []
+        colleges = dh.college_db.load_data()
+        for college in colleges:
+            college_code = college['code']
+            if self.prog_filter_vars[f'prog_college_{college_code}'].get():
+                active_college_filters.append(college_code)
+        
+        if active_college_filters:
+            for program in programs:
+                if program['college_code'] in active_college_filters:
+                    filtered_programs.append(program)
+        else:
+            filtered_programs = programs
+        
+        for program in filtered_programs:
+            self.program_tree.insert("", "end", values=(program['code'], program['name'], program['college_code']))
+
+        self.filtered_program_count = len(filtered_programs)
+        self.update_all_record_counts()
+        
+        if filter_window:
+            filter_window.destroy()
+            
+    def clear_prog_filters(self):
+        if hasattr(self, 'prog_filter_vars'):
+            for var in self.prog_filter_vars.values():
+                var.set(False)
+        
+        self.filtered_program_count = None
+        self.refresh_program_table()
+        self.update_all_record_counts()
 
     # COLLEGES SECTION
 
@@ -428,17 +505,28 @@ class SISApp(ctk.CTk):
 
         # right side table
         table_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
-        table_frame.grid_rowconfigure(0, weight=1)
-        table_frame.grid_rowconfigure(1, weight=0)
+        table_frame.grid_rowconfigure(0, weight=0)
+        table_frame.grid_rowconfigure(1, weight=1)
+        table_frame.grid_rowconfigure(2, weight=0)
         table_frame.grid_columnconfigure(0, weight=1)
-
-        # record count label for programs
-        self.program_count_label = ctk.CTkLabel(table_frame, text="Total Records: 0", 
-                                               font=("Roboto", 12, "bold"), text_color="#2a942a")
-        self.program_count_label.grid(row=1, column=0, sticky="e", padx=5, pady=5)
         
+        # search and filter
+        sortFilter_frame = ctk.CTkFrame(table_frame)
+        sortFilter_frame.grid(row=0, column=0, sticky="nsew")
+
+        search_filter_frame = ctk.CTkFrame(sortFilter_frame, fg_color="transparent")
+        search_filter_frame.pack()
+
+        self.entry_prog_search = ctk.CTkEntry(search_filter_frame, placeholder_text="Search programs...", width=450)
+        self.entry_prog_search.pack(side="left", padx=10, pady=10)
+        self.entry_prog_search.bind("<KeyRelease>", self.search_program)
+
+        filter_button = ctk.CTkButton(search_filter_frame, text="Filter", command=self.open_filter_window_prog, width=50)
+        filter_button.pack(side="right", padx=10, pady=10)
+        
+        # program list
         tree_container = ctk.CTkFrame(table_frame)
-        tree_container.grid(row=0, column=0, sticky="nsew")
+        tree_container.grid(row=1, column=0, sticky="nsew")
         
         self.program_tree = ttk.Treeview(tree_container, columns=("Program Code", "Program Name", "College Code"), show="headings")
         scrollbar = ttk.Scrollbar(tree_container, orient="vertical", command=self.program_tree.yview)
@@ -446,6 +534,11 @@ class SISApp(ctk.CTk):
         scrollbar.pack(side="right", fill="y")
         self.program_tree.pack(side="left", fill="both", expand=True)
         
+        # record count label for programs
+        self.program_count_label = ctk.CTkLabel(table_frame, text="Total Records: 0", 
+                                               font=("Roboto", 12, "bold"), text_color="#2a942a")
+        self.program_count_label.grid(row=2, column=0, sticky="e", padx=5, pady=5)
+
         for col in ("Program Code", "Program Name", "College Code"):
             self.program_tree.heading(col, text=col + " ↕", command=lambda c=col: self.sort_program_table(c, False))
             self.program_tree.column(col, width=100)
@@ -490,6 +583,24 @@ class SISApp(ctk.CTk):
         for p in dh.program_db.load_data():
             self.program_tree.insert("", "end", values=(p['code'], p['name'], p['college_code']))
 
+    def search_program(self, event):
+        query = self.entry_prog_search.get().lower()
+        for item in self.program_tree.get_children():
+            self.program_tree.delete(item)
+        
+        search_results = []
+        for p in dh.program_db.load_data():
+            if any(query in str(v).lower() for v in p.values()):
+                self.program_tree.insert("", "end", values=(p['code'], p['name'], p['college_code']))
+                search_results.append(p)
+        
+        if query:
+            self.filtered_program_count = len(search_results)
+        else:
+            self.filtered_program_count = None
+        
+        self.update_all_record_counts()
+
     def sort_program_table(self, col, reverse):
         col_mapping = {
             "Program Code": "code",
@@ -504,12 +615,34 @@ class SISApp(ctk.CTk):
         arrow = " ▼" if reverse else " ▲"
         self.program_tree.heading(col, text=col + arrow)
 
-        data = dh.program_db.load_data()
-        data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
-        for item in self.program_tree.get_children():
-            self.program_tree.delete(item)
-        for p in data:
-            self.program_tree.insert("", "end", values=list(p.values()))
+        # check if in a filtered state
+        if hasattr(self, 'filtered_program_count') and self.filtered_program_count is not None:
+            current_items = []
+            for item in self.program_tree.get_children():
+                values = self.program_tree.item(item)['values']
+                # create a dict with the same structure as database records
+                current_items.append({
+                    'code': values[0],
+                    'name': values[1], 
+                    'college_code': values[2]
+                })
+            
+            # sort the current items
+            current_items.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+            
+            for item in self.program_tree.get_children():
+                self.program_tree.delete(item)
+            for p in current_items:
+                self.program_tree.insert("", "end", values=list(p.values()))
+        else:
+            # sort all data when not filtered
+            data = dh.program_db.load_data()
+            data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+            for item in self.program_tree.get_children():
+                self.program_tree.delete(item)
+            for p in data:
+                self.program_tree.insert("", "end", values=list(p.values()))
+        
         self.program_tree.heading(col, command=lambda: self.sort_program_table(col, not reverse))
 
     def on_program_select(self, event):
@@ -576,7 +709,7 @@ class SISApp(ctk.CTk):
         self.entry_prog_code.delete(0, 'end')
         self.entry_prog_name.delete(0, 'end')
         self.combo_prog_college.set('Select College')
-
+    
 
     # STUDENTS SECTION
 
@@ -616,11 +749,7 @@ class SISApp(ctk.CTk):
         right_frame.grid_rowconfigure(2, weight=0)
         right_frame.grid_columnconfigure(0, weight=1)
 
-        # record count label for students
-        self.student_count_label = ctk.CTkLabel(right_frame, text="Total Records: 0", 
-                                               font=("Roboto", 12, "bold"), text_color="#2a942a")
-        self.student_count_label.grid(row=2, column=0, sticky="e", padx=5, pady=5)
-
+        # search and filter
         sortFilter_frame = ctk.CTkFrame(right_frame)
         sortFilter_frame.grid(row=0, column=0, sticky="nsew")
 
@@ -631,9 +760,10 @@ class SISApp(ctk.CTk):
         self.entry_search.pack(side="left", padx=10, pady=10)
         self.entry_search.bind("<KeyRelease>", self.search_student)
         
-        filter_button = ctk.CTkButton(search_filter_frame, text="Filter", command=self.open_filter_window, width=50)
+        filter_button = ctk.CTkButton(search_filter_frame, text="Filter", command=self.open_filter_window_stud, width=50)
         filter_button.pack(side="right", padx=10, pady=10)
 
+        # student list
         tree_container = ctk.CTkFrame(right_frame)
         tree_container.grid(row=1, column=0, sticky="nsew")
 
@@ -643,6 +773,11 @@ class SISApp(ctk.CTk):
         scrollbar.pack(side="right", fill="y")
         self.student_tree.pack(side="left", fill="both", expand=True)
 
+        # record count label for students
+        self.student_count_label = ctk.CTkLabel(right_frame, text="Total Records: 0", 
+                                               font=("Roboto", 12, "bold"), text_color="#2a942a")
+        self.student_count_label.grid(row=2, column=0, sticky="e", padx=5, pady=5)
+        
         for col in ("ID", "First Name", "Last Name", "Program", "Year", "Gender"):
             self.student_tree.heading(col, text=col + " ↕", command=lambda c=col: self.sort_student_table(c, False))
             self.student_tree.column(col, width=100)
@@ -779,7 +914,7 @@ class SISApp(ctk.CTk):
         
         self.update_all_record_counts()
 
-    def open_filter_window(self):
+    def open_filter_window_stud(self):
         filter_window = Toplevel(self.master)
         filter_window.title("Filter Students")
         filter_window.geometry("380x350")
@@ -913,7 +1048,7 @@ class SISApp(ctk.CTk):
             if gender_match and year_match and college_match:
                 filtered_students.append(student)
         
-        # ff no filters are active, show all students
+        # if no filters are active, show all students
         any_filter_active = any(var.get() for var in self.filter_vars.values())
         if not any_filter_active:
             filtered_students = students
@@ -964,12 +1099,33 @@ class SISApp(ctk.CTk):
         arrow = " ▼" if reverse else " ▲"
         self.student_tree.heading(col, text=col + arrow)
         
-        data = dh.student_db.load_data()
-        data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
-        for item in self.student_tree.get_children():
-            self.student_tree.delete(item)
-        for s in data:
-            self.student_tree.insert("", "end", values=list(s.values()))
+        if hasattr(self, 'filtered_student_count') and self.filtered_student_count is not None:
+            current_items = []
+            for item in self.student_tree.get_children():
+                values = self.student_tree.item(item)['values']
+                current_items.append({
+                    'id': values[0],
+                    'firstname': values[1],
+                    'lastname': values[2],
+                    'program_code': values[3],
+                    'year': values[4],
+                    'gender': values[5]
+                })
+            
+            current_items.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+            
+            for item in self.student_tree.get_children():
+                self.student_tree.delete(item)
+            for s in current_items:
+                self.student_tree.insert("", "end", values=list(s.values()))
+        else:
+            data = dh.student_db.load_data()
+            data.sort(key=lambda x: str(x[db_field]), reverse=reverse)
+            for item in self.student_tree.get_children():
+                self.student_tree.delete(item)
+            for s in data:
+                self.student_tree.insert("", "end", values=list(s.values()))
+        
         self.student_tree.heading(col, command=lambda: self.sort_student_table(col, not reverse))
 
     def on_tab_change(self):
