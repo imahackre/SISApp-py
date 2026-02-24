@@ -60,12 +60,9 @@ This app requires customtkinter for the UI.
 
 ## 📂 Data Structure
 The app manages three interconnected CSV files:
--    ```bash
-     students.csv
--    ```bash
-     programs.csv
--    ```bash
-     colleges.csv
+- `students.csv`
+- `programs.csv`
+- `colleges.csv`
 
      
 @gitnsaen
