@@ -329,7 +329,7 @@ class SISApp(ctk.CTk):
                 messagebox.showerror("Error", "College Code already exists!")
                 return
             
-            data.append({'code': code, 'name': name})
+            data.insert(0, {'code': code, 'name': name})
             dh.college_db.save_data(data)
             self.refresh_college_table()
             self.update_college_dropdown()
@@ -489,7 +489,7 @@ class SISApp(ctk.CTk):
             if any(p['code'] == code for p in data):
                 messagebox.showerror("Error", "Program Code exists!")
                 return
-            data.append({'code': code, 'name': name, 'college_code': coll})
+            data.insert(0, {'code': code, 'name': name, 'college_code': coll})
             dh.program_db.save_data(data)
             self.refresh_program_table()
             self.update_program_dropdown()
@@ -812,7 +812,7 @@ class SISApp(ctk.CTk):
             if any(s['id'] == sid for s in data):
                 messagebox.showerror("Error", "ID exists!")
                 return
-            data.append({'id': sid, 'firstname': fn, 'lastname': ln, 'program_code': pr, 'year': yr, 'gender': gn})
+            data.insert(0, {'id': sid, 'firstname': fn, 'lastname': ln, 'program_code': pr, 'year': yr, 'gender': gn})
             dh.student_db.save_data(data)
             self.refresh_student_table()
             self.update_all_record_counts()
