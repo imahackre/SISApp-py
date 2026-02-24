@@ -1,4 +1,3 @@
-from random import weibullvariate
 import customtkinter as ctk
 from tkinter import ttk, messagebox, Listbox, Toplevel, BooleanVar
 import data_handler as dh
