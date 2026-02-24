@@ -28,6 +28,8 @@ The high-level organizational view:
 * **Smart Sorting:** You can click any column header in the tables to instantly sort the data (A-Z or numerical).
 * **Live Counters:** Each tab shows a "Records count" at the bottom so you always know exactly how many records are in your system, filtered or not.
 * **CRUDL Ready:** Full support to **Add, Update, and Delete** entries across all three tabs.
+  
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/d28857f1-1fca-42d2-af91-3557924f9e86" />
 
 ## 🛡️ Data Integrity & Constraints
 I implemented specific logic to ensure the database remains consistent and free of errors:
