@@ -182,6 +182,10 @@ class SISApp(ctk.CTk):
 
         self.filtered_student_count = None
         self.filtered_program_count = None
+        
+        # filter window tracking
+        self.prog_filter_window = None
+        self.stud_filter_window = None
 
         self.setup_college_ui()
         self.setup_program_ui()
@@ -637,11 +641,24 @@ class SISApp(ctk.CTk):
         self.program_tree.heading(col, command=lambda: self.sort_program_table(col, not reverse))
     
     def open_filter_window_prog(self):
+        if self.prog_filter_window and self.prog_filter_window.winfo_exists():
+            self.prog_filter_window.lift()
+            self.prog_filter_window.focus_set()
+            return
+            
         filter_window = Toplevel(self.master)
         filter_window.title("Filter Programs")
         filter_window.geometry("350x350")
         filter_window.configure(bg='#2b2b2b')
         filter_window.resizable(False, False)
+        
+        self.prog_filter_window = filter_window
+        
+        def on_destroy():
+            self.prog_filter_window = None
+            filter_window.destroy()
+        
+        filter_window.protocol("WM_DELETE_WINDOW", on_destroy)
         
         if not hasattr(self, 'prog_filter_vars'):
             self.prog_filter_vars = {}
@@ -698,6 +715,7 @@ class SISApp(ctk.CTk):
         
         if filter_window:
             filter_window.destroy()
+            self.prog_filter_window = None
             
     def clear_prog_filters(self):
         if hasattr(self, 'prog_filter_vars'):
@@ -968,11 +986,24 @@ class SISApp(ctk.CTk):
         self.student_tree.heading(col, command=lambda: self.sort_student_table(col, not reverse))
 
     def open_filter_window_stud(self):
+        if self.stud_filter_window and self.stud_filter_window.winfo_exists():
+            self.stud_filter_window.lift()
+            self.stud_filter_window.focus_set()
+            return
+            
         filter_window = Toplevel(self.master)
         filter_window.title("Filter Students")
         filter_window.geometry("380x350")
         filter_window.configure(bg='#2b2b2b')
         filter_window.resizable(False, False)
+        
+        self.stud_filter_window = filter_window
+        
+        def on_destroy():
+            self.stud_filter_window = None
+            filter_window.destroy()
+        
+        filter_window.protocol("WM_DELETE_WINDOW", on_destroy)
         
         if not hasattr(self, 'filter_vars'):
             self.filter_vars = {}
@@ -1112,9 +1143,9 @@ class SISApp(ctk.CTk):
         self.filtered_student_count = len(filtered_students)
         self.update_all_record_counts()
 
-        # close filter window if provided
         if filter_window:
             filter_window.destroy()
+            self.stud_filter_window = None
 
     def clear_all_filters(self):
         if hasattr(self, 'filter_vars'):
